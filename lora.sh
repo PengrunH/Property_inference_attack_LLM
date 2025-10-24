@@ -1,0 +1,12 @@
+WORLD_SIZE=4 CUDA_VISIBLE_DEVICES="1,2" torchrun --nproc_per_node=2 --master_port=6666 train_lora.py \
+  --base_model "meta-llama/Meta-Llama-3-8b-Instruct"\
+  --data_path "DATA_PATH" \
+  --output_dir 'OUTPUT_DIRECTORY'\
+  --batch_size 32 \
+  --micro_batch_size 2 \
+  --num_epochs 5 \
+  --learning_rate 1e-4 \
+  --cutoff_len 512 \
+  --adapter_name lora \
+  --save_step 200 \
+  --train_on_inputs True \
