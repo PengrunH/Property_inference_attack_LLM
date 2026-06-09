@@ -131,7 +131,7 @@ For each (ratio, seed) combination, the script:
 python shadow_attack.py \
     --shadow_output_dir shadow_models/outputs \   # folder of shadow model .pth outputs
     --target_output_dir target_outputs \          # folder of target model .pth outputs
-    --key_word_length   5 \                      # number of keywords selected by f_regression
+    --key_word_length   2 5 10 \                 # list of keyword counts to evaluate
     --val_ratio         0.2 \                    # fraction of shadow models held out for XGBoost validation
     --seed              42                         # random seed for train/val split
 ```
