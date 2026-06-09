@@ -126,13 +126,13 @@ def main():
         for fname, pred, true in zip(target_files, preds, target_ratios):
             print(f"  {fname}: predicted={pred:.3f}  true={true:.3f}  |error|={abs(pred - true):.3f}")
         print(f"Mean absolute error (k={k}): {mae:.4f}")
-        summary[k] = mae
+        summary[k] = (mae, keywords)
 
     print(f"\n{'='*50}")
-    print("Summary: MAE per key_word_length")
+    print("Summary: MAE and keywords per key_word_length")
     print(f"{'='*50}")
-    for k, mae in summary.items():
-        print(f"  k={k:>4d}  MAE={mae:.4f}")
+    for k, (mae, keywords) in summary.items():
+        print(f"  k={k:>4d}  MAE={mae:.4f}  keywords={list(keywords)}")
 
 
 if __name__ == "__main__":
