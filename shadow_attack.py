@@ -87,6 +87,8 @@ def main():
     y_tr = y_shadow[idx_tr]
     y_val = y_shadow[idx_val]
 
+    summary = {}  # k -> MAE
+
     for k in args.key_word_length:
         print(f"\n{'='*50}")
         print(f"Running attack with key_word_length={k}")
@@ -124,6 +126,13 @@ def main():
         for fname, pred, true in zip(target_files, preds, target_ratios):
             print(f"  {fname}: predicted={pred:.3f}  true={true:.3f}  |error|={abs(pred - true):.3f}")
         print(f"Mean absolute error (k={k}): {mae:.4f}")
+        summary[k] = mae
+
+    print(f"\n{'='*50}")
+    print("Summary: MAE per key_word_length")
+    print(f"{'='*50}")
+    for k, mae in summary.items():
+        print(f"  k={k:>4d}  MAE={mae:.4f}")
 
 
 if __name__ == "__main__":
