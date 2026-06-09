@@ -53,6 +53,13 @@ ds_diagnosis = load_dataset("Pengrun/PropInfer_dataset", name="medical_diagnosis
 
 ## Setup
 
+### Environment
+
+```bash
+conda env create -f environment.yml
+conda activate propinfer
+```
+
 ### Fine-tuning a target model
 
 Fine-tune `meta-llama/Meta-Llama-3-8b-Instruct` with LoRA via `train_lora.py`:
