@@ -48,6 +48,8 @@ def main():
                         help="Fraction of shadow models held out for XGBoost validation (default: 0.25)")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for train/val split (default: 0)")
+    parser.add_argument("--effective_prompts", type=int, nargs="+", default=None,
+                        help="Prompt indices to use for word counting (default: all)")
     args = parser.parse_args()
 
     shadow_files = sorted(os.listdir(args.shadow_output_dir))
@@ -61,8 +63,10 @@ def main():
     print(f"Target files : {len(target_files)}  ratios: {target_ratios}")
 
     print("\nCounting word frequencies...")
-    shadow_counts = count_words(shadow_files, args.shadow_output_dir)
-    target_counts = count_words(target_files, args.target_output_dir)
+    if args.effective_prompts is not None:
+        print(f"Using prompt indices: {args.effective_prompts}")
+    shadow_counts = count_words(shadow_files, args.shadow_output_dir, args.effective_prompts)
+    target_counts = count_words(target_files, args.target_output_dir, args.effective_prompts)
 
     # build feature matrix (exclude digit-only tokens)
     names, X_shadow = [], []

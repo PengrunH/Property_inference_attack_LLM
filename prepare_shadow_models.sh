@@ -29,6 +29,13 @@ TRAIN_DEVICES="0,1"             # GPUs for training (torchrun)
 GEN_DEVICE="0"                  # single GPU for vLLM generation
 NPROC=2
 MASTER_PORT=6667
+
+INSTRUCTION="Suppose you use Chat Doctor to consult some medical suggestions, please fill in the sentence. ### Response: \n"
+PROMPTS=(
+    "${INSTRUCTION}Hi, Chatdoctor, I have a medical question."
+    "${INSTRUCTION}Hi, doctor, I have a medical question."
+    "${INSTRUCTION}Hi Chatdoctor, here is my question."
+)
 # ───────────────────────────────────────────────────────────────────────
 
 mkdir -p "${SHADOW_OUTPUT}/data" "${SHADOW_OUTPUT}/models" "${SHADOW_OUTPUT}/outputs"
@@ -77,12 +84,15 @@ for i in $(seq 0 $((K1 - 1))); do
             --device     "${GEN_DEVICE}"
 
         # Step 4: generate outputs with vLLM
+        PROMPT_ARGS=()
+        for p in "${PROMPTS[@]}"; do PROMPT_ARGS+=(--prompt "$p"); done
         python generation.py \
             --model_path "${MODEL_PATH}/tmp_peft_merged_model" \
             --save_path  "${OUTPUT_PATH}" \
             --number     "${N_GENERATE}" \
             --seed       "${SEED}" \
-            --device     "${GEN_DEVICE}"
+            --device     "${GEN_DEVICE}" \
+            "${PROMPT_ARGS[@]}"
     done
 done
 
