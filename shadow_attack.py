@@ -43,9 +43,10 @@ def main():
                         help="Folder of shadow model .pth outputs (from prepare_shadow_models.sh)")
     parser.add_argument("--target_output_dir", required=True,
                         help="Folder of target model .pth outputs")
-    parser.add_argument("--key_word_length", type=int, default=5)
+    parser.add_argument("--key_word_length", type=int, nargs="+", default=[2, 4, 5],
+                        help="Number of keywords to select (can be a list, e.g. 5 10 20)")
     parser.add_argument("--val_ratio", type=float, default=0.2,
-                        help="Fraction of shadow models held out for XGBoost validation (default: 0.25)")
+                        help="Fraction of shadow models held out for XGBoost validation (default: 0.2)")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for train/val split (default: 0)")
     parser.add_argument("--effective_prompts", type=int, nargs="+", default=None,
@@ -78,43 +79,51 @@ def main():
     X_shadow = np.array(X_shadow).T
     y_shadow = np.array(shadow_ratios)
 
-    print(f"Selecting top {args.key_word_length} keywords via f_regression...")
-    fs = SelectKBest(f_regression, k=args.key_word_length)
-    fs.fit_transform(X_shadow, y_shadow)
-    keywords = fs.get_feature_names_out(names)
-    print(f"Keywords: {keywords}")
-
-    def build_matrix(counts, files):
-        return np.array([
-            counts[kw] if kw in counts else [0] * len(files)
-            for kw in keywords
-        ]).T
-
-    X_train = build_matrix(shadow_counts, shadow_files)
-    X_test  = build_matrix(target_counts, target_files)
-
+    # fix train/val split once, reuse across all k values
     np.random.seed(args.seed)
-    perm = np.random.permutation(len(X_train))
-    n_tr = math.ceil(len(X_train) * (1 - args.val_ratio))
-    X_tr, X_val = X_train[perm[:n_tr]], X_train[perm[n_tr:]]
-    y_tr, y_val = y_shadow[perm[:n_tr]], y_shadow[perm[n_tr:]]
+    perm = np.random.permutation(len(X_shadow))
+    n_tr = math.ceil(len(X_shadow) * (1 - args.val_ratio))
+    idx_tr, idx_val = perm[:n_tr], perm[n_tr:]
+    y_tr = y_shadow[idx_tr]
+    y_val = y_shadow[idx_val]
 
-    print("\nTraining XGBoost...")
-    bst = xgb.train(
-        {"objective": "reg:squarederror"},
-        xgb.DMatrix(X_tr, label=y_tr),
-        100,
-        [(xgb.DMatrix(X_val, label=y_val), "eval"),
-         (xgb.DMatrix(X_tr,  label=y_tr),  "train")],
-    )
+    for k in args.key_word_length:
+        print(f"\n{'='*50}")
+        print(f"Running attack with key_word_length={k}")
+        print(f"{'='*50}")
 
-    preds = bst.predict(xgb.DMatrix(X_test, label=np.array(target_ratios)))
-    mae = np.abs(preds - np.array(target_ratios)).mean()
+        fs = SelectKBest(f_regression, k=k)
+        fs.fit_transform(X_shadow, y_shadow)
+        keywords = fs.get_feature_names_out(names)
+        print(f"Keywords: {keywords}")
 
-    print("\n=== Results ===")
-    for fname, pred, true in zip(target_files, preds, target_ratios):
-        print(f"  {fname}: predicted={pred:.3f}  true={true:.3f}  |error|={abs(pred - true):.3f}")
-    print(f"Mean absolute error: {mae:.4f}")
+        def build_matrix(counts, files):
+            return np.array([
+                counts[kw] if kw in counts else [0] * len(files)
+                for kw in keywords
+            ]).T
+
+        X_train = build_matrix(shadow_counts, shadow_files)
+        X_test  = build_matrix(target_counts, target_files)
+
+        X_tr, X_val = X_train[idx_tr], X_train[idx_val]
+
+        print("Training XGBoost...")
+        bst = xgb.train(
+            {"objective": "reg:squarederror"},
+            xgb.DMatrix(X_tr, label=y_tr),
+            100,
+            [(xgb.DMatrix(X_val, label=y_val), "eval"),
+             (xgb.DMatrix(X_tr,  label=y_tr),  "train")],
+        )
+
+        preds = bst.predict(xgb.DMatrix(X_test, label=np.array(target_ratios)))
+        mae = np.abs(preds - np.array(target_ratios)).mean()
+
+        print("\n=== Results ===")
+        for fname, pred, true in zip(target_files, preds, target_ratios):
+            print(f"  {fname}: predicted={pred:.3f}  true={true:.3f}  |error|={abs(pred - true):.3f}")
+        print(f"Mean absolute error (k={k}): {mae:.4f}")
 
 
 if __name__ == "__main__":
