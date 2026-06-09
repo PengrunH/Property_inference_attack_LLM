@@ -15,7 +15,7 @@ def count_words(file_list, folder_path):
         print(file_name)
         df = torch.load(folder_path +'/'+ file_name, weights_only = False)
 
-        # support both old format (column 0) and new format (column 'text')
+        
         if 'text' in df.columns:
             texts = df['text'].tolist()
         else:
