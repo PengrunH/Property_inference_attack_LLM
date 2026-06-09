@@ -15,19 +15,21 @@ def count_words(file_list, folder_path):
         print(file_name)
         df = torch.load(folder_path +'/'+ file_name, weights_only = False)
 
-        for key in df.keys():
-            df_1 = df[key]
-            for i in tqdm(range(len(df_1))):
+        # support both old format (column 0) and new format (column 'text')
+        if 'text' in df.columns:
+            texts = df['text'].tolist()
+        else:
+            texts = df[0].tolist()
 
-                str = df_1.at[i, 0]
-                word_list = str.replace("?", " ").lower().replace(".", " ").replace(",", " ").replace("!", " ").replace("-", " ").replace("/", " ").replace(":", " ").replace("(", " ").replace(")", " ").replace("'", " ").replace(";", " ").split(" ")
-                unique_word_list = set(word_list)
-                
-                for word in unique_word_list:
-                    if word in Dict.keys():
-                        Dict[word] += 1
-                    else:
-                        Dict[word] = 1
+        for text in tqdm(texts):
+            word_list = text.replace("?", " ").lower().replace(".", " ").replace(",", " ").replace("!", " ").replace("-", " ").replace("/", " ").replace(":", " ").replace("(", " ").replace(")", " ").replace("'", " ").replace(";", " ").split(" ")
+            unique_word_list = set(word_list)
+
+            for word in unique_word_list:
+                if word in Dict.keys():
+                    Dict[word] += 1
+                else:
+                    Dict[word] = 1
             
         Dict_file[file_name] = Dict
         
